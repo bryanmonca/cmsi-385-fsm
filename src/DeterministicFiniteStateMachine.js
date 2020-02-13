@@ -3,7 +3,9 @@ export default class DeterministicFiniteStateMachine {
   /**
    */
   constructor({ transitions, startState, acceptStates }) {
-    throw 'IMPLEMENT constructor(description)';
+    this.__transitions = transitions;
+    this.__startState = startState;
+    this.__acceptStates = acceptStates;
   }
 
   /**
@@ -11,11 +13,23 @@ export default class DeterministicFiniteStateMachine {
    * @returns a string state name
    */
   transition(state, symbol) {
-    throw 'IMPLEMENT transition(state, symbol)';
+    return this.__transitions[state][symbol]
+  }
+
+  isAcceptState(state){
+    return this.acceptStates.includes(state);
   }
 
   accepts(string, state = this._startState) {
-    throw 'IMPLEMENT FiniteStateMachine.accepts';
+    let currentString = string;
+    let currentState = state;
+
+    while(currentString.length > 0) {
+      currentState = this.transition(currentState, currentString.charAt(0));
+      currentString = currentString.substr(1);
+    }
+
+    return this.isAcceptState(currentState);
   }
 
 }
