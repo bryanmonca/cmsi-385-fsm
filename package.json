@@ -22,5 +22,6 @@
     "docs": "npm run docs:build && npm run docs:md",
     "docs:build": "documentation build src/** -f html -o docs/classes",
     "docs:md": "documentation build src/** -f md -o docs/CLASSES.md"
-  }
+  },
+  "repository": "https://github.com/bryanmonca/cmsi-385-fsm.git"
 }
