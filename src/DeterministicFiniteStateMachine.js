@@ -20,6 +20,7 @@ export default class DeterministicFiniteStateMachine {
               alphabet.add(symbol);
           }
       }
+      return alphabet.values();
   }
 
   states() {
@@ -35,6 +36,7 @@ export default class DeterministicFiniteStateMachine {
    * @returns a string state name
    */
   transition(state, symbol) {
+    if(!this.transitions[state]) return;
     return this.transitions[state][symbol];
   }
 
@@ -64,7 +66,7 @@ export function cross(dfa1, dfa2, accepts = (dfa1State, dfa2State) => true) {
   const unresolvedStates = [{ state: startState, state1: dfa1.startState, state2: dfa2.startState}];
 
   while(unresolvedStates.length > 0) {  
-      const { state, state1, state2} = unresolvedStates.pop();
+      const { state1, state2, state} = unresolvedStates.pop();
 
       transitions[state] = {};
 
