@@ -101,7 +101,66 @@ export function minus(dfa1, dfa2) {
     (state1, state2) => dfa1.stateAccepted(state1) && !dfa2.stateAccepted(state2));
 }
 
-export function minimize(dfa) {
-  // TODO return a new minimized DFA
-  return dfa;
+export function minimize(dfa, groups = [ [...dfa.states()]]) { //idea of groups
+  const behaviors = {};
+
+  const findGroup = state => {
+    for(const group of groups) {
+      if(group.includes(state)) return group;
+    }
+  }
+  const behaviorKey = state => {
+    let behaviorString = `accepted=${dfa.stateAccepted(state)}`;
+    //deal with the symbols
+    for(const symbol of dfa.alphabet()){
+      const nextState = dfa.transition(state, symbol);
+      const group = findGroup(nextState);
+      behaviorString = `${behaviorString},${symbol}=${group.join('-')}`;
+    }
+    return behaviorString;
+  }
+  //go through every state, and see what group it belongs in given the groups we pass in
+  for(const state of dfa.states()){
+    const key = behaviorKey(state);//behavior key, to see where it belongs
+    if(!behaviors[key]) behaviors[key] = [] //we create something when there's nothing
+    behaviors[key].push(state);
+  }
+
+  const newGroups = Object.values(behaviors);
+
+  if(newGroups.length === groups.length) {
+    const transitions = {};
+    let startState = ""; 
+    const acceptStates = [];
+
+    const needsTransitions = [findGroup(dfa.startState)]//groups that need transitions //find group with startState
+
+    while(needsTransitions.length > 0) {
+      const group = needsTransitions.pop();
+      const state = group.join('-'); //create new state name
+
+      if(dfa.stateAccepted(group[0])) acceptStates.push(state);
+
+      transitions[state] = {};
+
+      for(const symbol of dfa.alphabet()) {
+        const nextState = dfa.transition(group[0], symbol) //group[0] very first state in the group
+        const nextStateGroup = findGroup(nextState);
+
+        const newNextState = nextStateGroup.join('-');
+
+        
+
+        transitions[state][symbol] = newNextState;
+
+        if(!transitions[newNextState]) needsTransitions.push(nextStateGroup);
+      }
+    }
+    
+    startState = findGroup(dfa.startState).join('-');//?
+
+    return new DeterministicFiniteStateMachine({ transitions, startState, acceptStates });
+  } else {
+    return minimize(dfa, newGroups);
+  }
 }
