@@ -1,6 +1,176 @@
-import DeterministicFiniteStateMachine from './DeterministicFiniteStateMachine';
+import DeterministicFiniteStateMachine, { union, intersection, minus, minimize } from './DeterministicFiniteStateMachine';
 
 const tests = {
+  startsWith0: {
+    minimizable: true,
+    description: {
+      transitions: {
+        S: {
+          0: 'A',
+          1: 'D',
+        },
+        A: {
+          0: 'A',
+          1: 'B',
+        },
+        B: {
+          0: 'A',
+          1: 'C',
+        },
+        D: {
+          0: 'D',
+          1: 'E',
+        },
+        E: {
+          0: 'D',
+          1: 'E',
+        },
+        C: {
+          0: 'A',
+          1: 'B',
+        },
+      },
+      startState: 'S',
+      acceptStates: ['A', 'B', 'C'],
+    },
+
+    tests: {
+      accepts: [
+        '010',
+        '01000',
+        '01',
+      ],
+      rejects: [
+        '1', '10'
+      ],
+    }
+  },
+  acceptsAll: {
+    minimizable: true,
+    description: {
+      transitions: {
+        start: {
+          0: 'acceptsAll',
+          1: 'seen1',
+        },
+        seen1: {
+          0: 'acceptsAll',
+          1: 'seen2',
+        },
+        seen2: {
+          0: 'acceptsAll',
+          1: 'seen2',
+        },
+        acceptsAll: {
+          0: 'acceptsAll',
+          1: 'acceptsAll',
+        },
+      },
+      startState: 'start',
+      acceptStates: ['acceptsAll', 'start', 'seen1', 'seen2'],
+    },
+
+    tests: {
+      accepts: [
+        '110',
+        '11000',
+        '11',
+      ],
+      rejects: [
+      ],
+    }
+  },
+  startsWith11: {
+    minimizable: true,
+    description: {
+      transitions: {
+        start: {
+          0: 'dead0',
+          1: 'seen1',
+        },
+        seen1: {
+          0: 'dead1',
+          1: 'seen11',
+        },
+        dead0: {
+          0: 'dead0',
+          1: 'dead0',
+        },
+        dead1: {
+          0: 'dead1',
+          1: 'dead1',
+        },
+        dead11: {
+          0: 'dead1',
+          1: 'dead1',
+        },
+        seen11: {
+          0: 'seen11',
+          1: 'seen11',
+        }
+      },
+      startState: 'start',
+      acceptStates: ['seen11'],
+    },
+
+    tests: {
+      accepts: [
+        '110',
+        '11000',
+        '11',
+      ],
+      rejects: [
+        '1000',
+        '1',
+      ],
+    }
+  },
+  startsWith11OrLambda: {
+    minimizable: true,
+    description: {
+      transitions: {
+        start: {
+          0: 'dead0',
+          1: 'seen1',
+        },
+        seen1: {
+          0: 'dead1',
+          1: 'seen11',
+        },
+        dead0: {
+          0: 'dead0',
+          1: 'dead0',
+        },
+        dead1: {
+          0: 'dead1',
+          1: 'dead1',
+        },
+        dead11: {
+          0: 'dead1',
+          1: 'dead1',
+        },
+        seen11: {
+          0: 'seen11',
+          1: 'seen11',
+        }
+      },
+      startState: 'start',
+      acceptStates: ['seen11', 'start'],
+    },
+
+    tests: {
+      accepts: [
+        '',
+        '110',
+        '11000',
+        '11',
+      ],
+      rejects: [
+        '1000',
+        '1',
+      ],
+    }
+  },
   divBy3: {
     description: {
       transitions: {
@@ -140,6 +310,94 @@ describe('examples', () => {
           expect(`${string}: false`).toEqual(`${string}: ${fsm.accepts(string)}`);
         }
       });
+    });
+  }
+});
+
+describe('cross product', () => {
+  for (const [key1, desc1] of Object.entries(tests)) {
+    for (const [key2, desc2] of Object.entries(tests)) {
+      if(key1 != key2) {
+
+
+        describe(`dfa1: ${key1} x dfa2: ${key2}`, () => {
+
+          test('union', () => {
+            const dfa1 = new DeterministicFiniteStateMachine(desc1.description);
+            const dfa2 = new DeterministicFiniteStateMachine(desc2.description);
+
+            const allTests = [
+              ...desc1.tests.accepts,
+              ...desc1.tests.rejects,
+              ...desc2.tests.accepts,
+              ...desc2.tests.rejects,
+            ];
+            
+            const fsm = union(dfa1, dfa2);
+            for (const string of allTests) {
+              const expectedResult = dfa1.accepts(string) || dfa2.accepts(string);
+              expect(`${string}: ${fsm.accepts(string)}`).toEqual(`${string}: ${expectedResult}`);
+            }
+          });
+
+          test('intersection', () => {
+            const dfa1 = new DeterministicFiniteStateMachine(desc1.description);
+            const dfa2 = new DeterministicFiniteStateMachine(desc2.description);
+
+            const allTests = [
+              ...desc1.tests.accepts,
+              ...desc1.tests.rejects,
+              ...desc2.tests.accepts,
+              ...desc2.tests.rejects,
+            ];
+            
+            const fsm = intersection(dfa1, dfa2);
+            for (const string of allTests) {
+              const expectedResult = dfa1.accepts(string) && dfa2.accepts(string);
+              expect(`${string}: ${fsm.accepts(string)}`).toEqual(`${string}: ${expectedResult}`);
+            }
+          });
+
+          test('minus', () => {
+            const dfa1 = new DeterministicFiniteStateMachine(desc1.description);
+            const dfa2 = new DeterministicFiniteStateMachine(desc2.description);
+
+            const allTests = [
+              ...desc1.tests.accepts,
+              ...desc1.tests.rejects,
+              ...desc2.tests.accepts,
+              ...desc2.tests.rejects,
+            ];
+            
+            const fsm = minus(dfa1, dfa2);
+            for (const string of allTests) {
+              const expectedResult = dfa1.accepts(string) && !dfa2.accepts(string);
+              expect(`${string}: ${fsm.accepts(string)}`).toEqual(`${string}: ${expectedResult}`);
+            }
+          });
+
+        });
+      }
+    }
+  }
+});
+
+describe('minimize', () => {
+  for (const [key, desc] of Object.entries(tests)) {
+    test(`minimize(${key})`, () => {
+        const { description, tests, minimizable } = desc;
+        const dfa = new DeterministicFiniteStateMachine(description);
+        const minDfa = minimize(dfa);
+
+        if(minimizable) {
+          expect(minDfa.states().size).toBeLessThan(dfa.states().size);
+        } else {
+          expect(minDfa.states().size).toEqual(dfa.states().size);
+        }
+
+        for(const string of [...tests.accepts, ...tests.rejects]) {
+          expect(dfa.accepts(string)).toEqual(minDfa.accepts(string));
+        }
     });
   }
 });
